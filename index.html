@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>BGS Online Sailing</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;background:#0a1628;overflow:hidden;font-family:sans-serif;}
+
+/* ========== HOME SCREEN ========== */
+#home{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a1628;overflow:hidden;}
+#home-bg{position:absolute;inset:0;pointer-events:none;}
+.home-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:24px;width:100%;max-width:640px;padding:20px;}
+.home-title{font-size:clamp(32px,6vw,72px);font-weight:900;color:#fff;letter-spacing:-1px;text-shadow:0 0 60px rgba(56,189,248,0.6);text-align:center;line-height:1.1;}
+.home-title span{color:#38bdf8;}
+.home-subtitle{font-size:15px;color:rgba(255,255,255,0.45);letter-spacing:2px;text-transform:uppercase;}
+.btn-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center;}
+.btn{padding:14px 32px;border-radius:12px;border:none;font-size:17px;font-weight:700;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;letter-spacing:0.3px;white-space:nowrap;}
+.btn:hover{transform:translateY(-2px);}
+.btn-primary{background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;box-shadow:0 6px 24px rgba(14,165,233,0.4);}
+.btn-primary:hover{box-shadow:0 10px 32px rgba(14,165,233,0.6);}
+.btn-secondary{background:linear-gradient(135deg,#059669,#0d9488);color:#fff;box-shadow:0 6px 24px rgba(5,150,105,0.4);}
+.btn-secondary:hover{box-shadow:0 10px 32px rgba(5,150,105,0.6);}
+.btn-back{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.18);font-size:14px;padding:10px 20px;border-radius:10px;}
+.btn-back:hover{background:rgba(255,255,255,0.16);}
+.btn-sm{padding:10px 20px;font-size:14px;border-radius:9px;}
+.panel{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:28px 36px;display:flex;flex-direction:column;align-items:center;gap:18px;backdrop-filter:blur(12px);width:100%;}
+.panel-title{font-size:19px;font-weight:700;color:#fff;}
+.link-box{background:rgba(0,0,0,0.45);border:1px solid rgba(56,189,248,0.4);border-radius:10px;padding:12px 18px;font-family:monospace;font-size:12px;color:#38bdf8;word-break:break-all;width:100%;text-align:center;line-height:1.5;}
+.link-note{font-size:13px;color:rgba(255,255,255,0.5);text-align:center;line-height:1.6;max-width:480px;}
+.btn-copy{background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.35);border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s;}
+.btn-copy:hover{background:rgba(56,189,248,0.28);}
+.nick-input{background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:#fff;font-size:16px;font-weight:600;padding:11px 18px;outline:none;width:180px;transition:border 0.2s;}
+.nick-input::placeholder{color:rgba(255,255,255,0.3);}
+.nick-input:focus{border-color:#38bdf8;}
+.player-dots{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.pdot{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);}
+.wave-bg{position:absolute;bottom:0;left:0;width:100%;opacity:0.1;pointer-events:none;}
+.screen{display:none;flex-direction:column;align-items:center;gap:24px;width:100%;max-width:640px;padding:20px;}
+.screen.active{display:flex;}
+
+/* guest join page */
+#guest-join{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;background:#0a1628;}
+#guest-join .panel{max-width:500px;width:90vw;}
+.join-title{font-size:clamp(22px,4vw,44px);font-weight:900;color:#fff;text-align:center;text-shadow:0 0 40px rgba(56,189,248,0.5);}
+.join-title span{color:#38bdf8;}
+.waiting-anim{display:flex;gap:6px;align-items:center;justify-content:center;}
+.waiting-anim span{width:8px;height:8px;border-radius:50%;background:#38bdf8;animation:bounce 1.2s infinite;}
+.waiting-anim span:nth-child(2){animation-delay:0.2s;}
+.waiting-anim span:nth-child(3){animation-delay:0.4s;}
+@keyframes bounce{0%,80%,100%{transform:scale(0.7);opacity:0.5}40%{transform:scale(1.1);opacity:1}}
+
+/* ========== GAME SCREEN ========== */
+#game{display:none;flex-direction:column;width:100%;height:100%;}
+#hud{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;padding:6px 10px;background:rgba(0,0,0,0.6);}
+.stat{padding:4px 7px;}
+.sl{font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:1px;}
+.sv{font-size:12px;font-weight:600;color:#fff;}
+#bar-wrap{height:7px;background:rgba(255,255,255,0.08);}
+#bar{height:7px;width:100%;background:#22c55e;transition:background 0.3s;}
+#canvas-wrap{position:relative;flex:1;overflow:hidden;}
+canvas#c{display:block;width:100%;height:100%;}
+#alert-box{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(245,158,11,0.95);color:#1a0800;border-radius:8px;padding:8px 22px;font-size:14px;font-weight:700;display:none;white-space:nowrap;pointer-events:none;z-index:10;}
+#big-num{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);font-size:130px;font-weight:900;display:none;pointer-events:none;z-index:10;text-shadow:0 0 60px currentColor;}
+#penalty-flash{position:absolute;inset:0;background:rgba(239,68,68,0.18);display:none;pointer-events:none;z-index:9;border:4px solid rgba(239,68,68,0.6);}
+#ctrl-bar{height:27px;background:rgba(0,0,0,0.6);display:flex;align-items:center;gap:9px;padding:0 12px;font-size:11px;color:rgba(255,255,255,0.45);flex-shrink:0;}
+.k{background:rgba(255,255,255,0.13);border:0.5px solid rgba(255,255,255,0.28);border-radius:3px;padding:1px 5px;font-family:monospace;color:#fff;font-size:10px;}
+#home-btn{margin-left:auto;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);border-radius:5px;padding:2px 10px;font-size:11px;cursor:pointer;}
+#home-btn:hover{background:rgba(255,255,255,0.2);}
+</style>
+</head>
+<body>
+
+<!-- ========== GUEST JOIN PAGE ========== -->
+<div id="guest-join">
+  <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:24px;width:90vw;max-width:500px;">
+    <div class="join-title">BGS <span>Online Sailing</span></div>
+    <div class="panel">
+      <div class="panel-title" id="gj-race-title">Joining race…</div>
+      <p class="link-note">You've been invited to a <strong id="gj-format" style="color:#38bdf8"></strong> race.<br>Enter your nickname to join the lobby.</p>
+      <input class="nick-input" id="gj-nick" placeholder="Your nickname" maxlength="16" style="width:100%;text-align:center;font-size:18px;">
+      <button class="btn btn-secondary" onclick="guestJoin()">Join Lobby</button>
+      <p class="link-note" style="font-size:11px;color:rgba(255,255,255,0.28);">Waiting for host to start the race. You cannot start it yourself.</p>
+      <div class="waiting-anim" id="gj-waiting" style="display:none;">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== HOME SCREEN ========== -->
+<div id="home">
+  <canvas id="home-bg"></canvas>
+
+  <!-- Main menu -->
+  <div class="home-content screen active" id="screen-main">
+    <div class="home-title">BGS<br><span>Online Sailing</span></div>
+    <div class="home-subtitle">Choose your race</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="showScreen('screen-bot')">⚓ Play against a bot</button>
+      <button class="btn btn-secondary" onclick="showScreen('screen-comrades')">🌊 Sail with comrades</button>
+    </div>
+  </div>
+
+  <!-- Bot mode -->
+  <div class="home-content screen" id="screen-bot">
+    <div class="home-title" style="font-size:clamp(22px,4vw,46px);">Race against the CPU</div>
+    <div class="panel">
+      <div class="panel-title">1 Player vs 1 CPU Bot</div>
+      <p class="link-note">Sail the full course against an AI. The CPU follows all the same rules — port/starboard, mark penalties, and the 30 second start sequence.</p>
+      <div class="btn-row">
+        <input class="nick-input" id="bot-nick" placeholder="Your nickname" maxlength="16">
+        <button class="btn btn-primary" onclick="startBotRace()">▶ Start Race</button>
+      </div>
+      <button class="btn btn-back" onclick="showScreen('screen-main')">← Back</button>
+    </div>
+  </div>
+
+  <!-- Comrades format picker -->
+  <div class="home-content screen" id="screen-comrades">
+    <div class="home-title" style="font-size:clamp(22px,4vw,46px);">Sail with Comrades</div>
+    <div class="panel">
+      <div class="panel-title">Choose race format</div>
+      <p class="link-note">Pick a format — a shareable link will be generated for your crew.</p>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="showLobby('1v1')">⚔️ 1 v 1</button>
+        <button class="btn btn-primary" onclick="showLobby('2v2')">⚓ 2 v 2</button>
+        <button class="btn btn-primary" onclick="showLobby('3v3')">🌊 3 v 3</button>
+      </div>
+      <button class="btn btn-back" onclick="showScreen('screen-main')">← Back</button>
+    </div>
+  </div>
+
+  <!-- Host lobby -->
+  <div class="home-content screen" id="screen-lobby">
+    <div class="home-title" style="font-size:clamp(20px,3.5vw,40px);" id="lobby-title">Lobby</div>
+    <div class="panel">
+      <div class="panel-title">Share this link with your crew</div>
+      <div class="link-box" id="lobby-link">—</div>
+      <button class="btn-copy" id="copy-btn" onclick="copyLink()">📋 Copy link</button>
+      <div class="player-dots" id="lobby-dots"></div>
+      <p class="link-note" id="lobby-note"></p>
+      <div class="btn-row">
+        <input class="nick-input" id="host-nick" placeholder="Your nickname (host)" maxlength="16">
+        <button class="btn btn-primary btn-sm" onclick="startHostRace()">▶ Start Race</button>
+      </div>
+      <button class="btn btn-back" onclick="showScreen('screen-comrades')">← Back</button>
+    </div>
+  </div>
+
+  <svg class="wave-bg" viewBox="0 0 1440 200" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,100 C200,40 400,160 600,100 C800,40 1000,160 1200,100 C1350,60 1400,120 1440,100 L1440,200 L0,200 Z" fill="#38bdf8"/>
+  </svg>
+</div>
+
+<!-- ========== GAME SCREEN ========== -->
+<div id="game">
+  <div id="hud">
+    <div class="stat"><div class="sl">Speed</div><div class="sv"><span id="h-spd">0.0</span> km/h</div></div>
+    <div class="stat"><div class="sl">Heading</div><div class="sv"><span id="h-hdg">350</span>°</div></div>
+    <div class="stat"><div class="sl">Point of sail</div><div class="sv" id="h-pos">—</div></div>
+    <div class="stat"><div class="sl">Sail trim</div><div class="sv" id="h-sail">—</div></div>
+    <div class="stat"><div class="sl">Next mark</div><div class="sv" id="h-next">Waiting…</div></div>
+    <div class="stat"><div class="sl">Start in</div><div class="sv" id="h-cd">30.0s</div></div>
+    <div class="stat"><div class="sl">Race time</div><div class="sv" id="h-time">—</div></div>
+    <div class="stat"><div class="sl" id="h-opp-label">CPU mark</div><div class="sv" id="h-cpu">Waiting</div></div>
+  </div>
+  <div id="bar-wrap"><div id="bar"></div></div>
+  <div id="canvas-wrap">
+    <canvas id="c"></canvas>
+    <div id="alert-box"></div>
+    <div id="big-num"></div>
+    <div id="penalty-flash"></div>
+  </div>
+  <div id="ctrl-bar">
+    <span><span class="k">A</span>/<span class="k">D</span> steer</span>
+    <span><span class="k">S</span> reverse</span>
+    <span><span class="k">T</span> tack</span>
+    <span><span class="k">G</span> gybe</span>
+    <span><span class="k">E</span> pull sail in</span>
+    <span><span class="k">Q</span> ease sail</span>
+    <span id="r-hint"><span class="k">R</span> new race (host only)</span>
+    <button id="home-btn" onclick="goHome()">🏠 Home</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// HOME / LOBBY LOGIC
+// ============================================================
+let currentFormat='1v1';
+let lobbyId='';
+let playerNick='Sailor';
+let isHost=true;
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showLobby(format){
+  currentFormat=format;
+  lobbyId=Math.random().toString(36).substr(2,8).toUpperCase();
+  const max={'1v1':2,'2v2':4,'3v3':6}[format];
+  document.getElementById('lobby-title').textContent=format+' — Lobby '+lobbyId;
+  const base=window.location.href.split('?')[0];
+  const link=base+'?lobby='+lobbyId+'&format='+format+'&title='+encodeURIComponent('BGS Sailing — '+format);
+  document.getElementById('lobby-link').textContent=link;
+  // player dots
+  const dots=document.getElementById('lobby-dots');dots.innerHTML='';
+  for(let i=0;i<max;i++){
+    const d=document.createElement('div');d.className='pdot';
+    d.style.background=i===0?'#22c55e':'rgba(255,255,255,0.15)';
+    d.title='Player '+(i+1)+(i===0?' (you — host)':'');
+    dots.appendChild(d);
+  }
+  document.getElementById('lobby-note').innerHTML=
+    'Send the link above to '+(max-1)+' other sailor'+(max>2?'s':'')+'. '+'You are the <strong style="color:#22c55e">host</strong> — only you can start the race.<br>'
+    +'<span style="font-size:11px;color:rgba(255,255,255,0.28);">Real-time sync requires a WebSocket server. Currently runs as a local race.</span>';
+  document.getElementById('copy-btn').textContent='📋 Copy link';
+  showScreen('screen-lobby');
+}
+
+function copyLink(){
+  const link=document.getElementById('lobby-link').textContent;
+  navigator.clipboard.writeText(link).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=link;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+  });
+  document.getElementById('copy-btn').textContent='✅ Copied!';
+  setTimeout(()=>document.getElementById('copy-btn').textContent='📋 Copy link',2200);
+}
+
+function startBotRace(){
+  const n=(document.getElementById('bot-nick').value||'').trim();
+  playerNick=n||'Sailor';
+  isHost=true;
+  launchGame();
+}
+
+function startHostRace(){
+  const n=(document.getElementById('host-nick').value||'').trim();
+  playerNick=n||'Host';
+  isHost=true;
+  launchGame();
+}
+
+function guestJoin(){
+  const n=(document.getElementById('gj-nick').value||'').trim();
+  if(!n){document.getElementById('gj-nick').focus();return;}
+  playerNick=n;
+  isHost=false;
+  document.getElementById('gj-waiting').style.display='flex';
+  document.querySelector('#guest-join .btn').disabled=true;
+  document.getElementById('gj-nick').disabled=true;
+  // In a real implementation, signal the server. Here we just launch after 1.5s.
+  setTimeout(()=>launchGame(),1500);
+}
+
+function launchGame(){
+  document.getElementById('home').style.display='none';
+  document.getElementById('guest-join').style.display='none';
+  document.getElementById('game').style.display='flex';
+  // Show/hide R hint based on host
+  document.getElementById('r-hint').style.display=isHost?'':'none';
+  setTimeout(()=>{resize();reset();},60);
+}
+
+function goHome(){
+  gameRunning=false;
+  document.getElementById('game').style.display='none';
+  document.getElementById('home').style.display='flex';
+  showScreen('screen-main');
+}
+
+// Check if opened via invite link (guest)
+(function checkGuestLink(){
+  const p=new URLSearchParams(window.location.search);
+  const lobby=p.get('lobby'),format=p.get('format'),title=p.get('title');
+  if(lobby&&format){
+    document.getElementById('home').style.display='none';
+    document.getElementById('gj-race-title').textContent=decodeURIComponent(title||'BGS Online Sailing');
+    document.getElementById('gj-format').textContent=format;
+    document.getElementById('guest-join').style.display='flex';
+  }
+})();
+
+// Animated home screen background
+(function homeBg(){
+  const hc=document.getElementById('home-bg');
+  const hx=hc.getContext('2d');
+  const homeBoats=[
+    {x:120,y:0,h:15,spd:0.45,col:'#38bdf8'},
+    {x:500,y:0,h:60,spd:0.3,col:'#f97316'},
+    {x:300,y:0,h:5, spd:0.55,col:'#a78bfa'},
+  ];
+  let hf=0;
+  function drawHB(){
+    if(document.getElementById('home').style.display==='none'){requestAnimationFrame(drawHB);return;}
+    hf++;
+    hc.width=window.innerWidth;hc.height=window.innerHeight;
+    hx.clearRect(0,0,hc.width,hc.height);
+    hx.save();hx.globalAlpha=0.07;
+    for(let i=0;i<8;i++){const y=((i*90+hf*0.25)%hc.height);hx.beginPath();hx.moveTo(0,y);for(let x=0;x<hc.width;x+=65)hx.quadraticCurveTo(x+32,y-14,x+65,y);hx.strokeStyle='#93c5fd';hx.lineWidth=1.5;hx.stroke();}
+    hx.restore();
+    homeBoats.forEach(b=>{
+      b.y=hc.height*[0.62,0.72,0.52][homeBoats.indexOf(b)];
+      b.x+=b.spd;if(b.x>hc.width+80)b.x=-80;
+      const sz=20;
+      hx.save();hx.translate(b.x,b.y+Math.sin(hf*0.025+b.x*0.008)*7);hx.rotate(b.h*Math.PI/180);
+      hx.beginPath();hx.moveTo(0,-sz);hx.lineTo(sz*0.35,sz*0.5);hx.lineTo(0,sz*0.3);hx.lineTo(-sz*0.35,sz*0.5);hx.closePath();
+      hx.fillStyle=b.col;hx.globalAlpha=0.45;hx.fill();hx.globalAlpha=1;
+      hx.beginPath();hx.moveTo(0,-sz*0.7);hx.quadraticCurveTo(sz*0.5,-sz*0.2,sz*0.28,sz*0.05);hx.lineTo(0,sz*0.1);hx.closePath();hx.fillStyle='rgba(255,255,255,0.55)';hx.fill();
+      hx.restore();
+    });
+    requestAnimationFrame(drawHB);
+  }
+  drawHB();
+})();
+
+// ============================================================
+// GAME ENGINE
+// ============================================================
+let gameRunning=false;
+const WIND_FROM=0,FPS=60,START_SECS=30;
+const PEN_EARLY=3.5,PEN_BARGE=3.5;
+const BOAT_LENGTH=34,COLLISION_DIST=30;
+
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+
+function resize(){
+  const wrap=document.getElementById('canvas-wrap');
+  canvas.width=wrap.clientWidth;canvas.height=wrap.clientHeight;
+}
+window.addEventListener('resize',resize);
+
+function getCourse(W,H){
+  const px=W*0.07,py=H*0.09,slY=H-py-BOAT_LENGTH*2;
+  return{slPinX:px,slPinY:slY,slRCX:px+W*0.30,slRCY:slY,
+    M1:{x:px,y:py},M2:{x:W/2,y:py},M3:{x:W/2,y:H-py},M4:{x:W-px,y:H-py},
+    flPinX:W-px-W*0.10,flPinY:py,flRCX:W-px,flRCY:py};
+}
+function getWaypoints(c){return[{x:(c.slPinX+c.slRCX)/2,y:c.slPinY},{x:c.M1.x,y:c.M1.y},{x:c.M2.x,y:c.M2.y},{x:c.M3.x,y:c.M3.y},{x:c.M4.x,y:c.M4.y},{x:(c.flPinX+c.flRCX)/2,y:c.flPinY}];}
+
+function windRel(h){let r=((h-WIND_FROM+360)%360);if(r>180)r=360-r;return r;}
+function idealTrim(rel){if(rel<60)return 1.0;if(rel<100)return 1-(rel-60)/40*0.5;if(rel<150)return 0.5-(rel-100)/50*0.4;return 0.1;}
+function trimMult(rel,trim){return Math.max(0.6,1-Math.abs(trim-idealTrim(rel))*0.8);}
+function trimLabel(trim,rel){const d=trim-idealTrim(rel);if(Math.abs(d)<0.08)return'✓ Perfect';if(d>0.25)return'↑ Too tight';if(d>0.08)return'↑ Sl. tight';if(d<-0.25)return'↓ Too eased';return'↓ Sl. eased';}
+function speedForRel(r,trim){let b;if(r<30)b=r/30*3;else if(r<90)b=3+(r-30)/60*27;else if(r<135)b=30-(r-90)/45*10;else b=20;return b*trimMult(r,trim);}
+function getPos(r){if(r<30)return'In irons';if(r<60)return'Close-hauled';if(r<80)return'Close reach';if(r<100)return'Beam reach';if(r<150)return'Broad reach';return'Running';}
+function sdiff(f,t){let d=((t-f+360)%360);if(d>180)d-=360;return d;}
+function dist(ax,ay,bx,by){return Math.sqrt((bx-ax)**2+(by-ay)**2);}
+function hTo(fx,fy,tx,ty){return(Math.atan2(ty-fy,tx-fx)*180/Math.PI+90+360)%360;}
+function getTack(h){return(((h%360)+360)%360)>0&&(((h%360)+360)%360)<180?'starboard':'port';}
+function isBearingAway(p,c){return windRel(c)>windRel(p)+0.5;}
+
+function makePen(){return{active:false,spinsLeft:0,angleSpun:0,shiftDone:false};}
+function startPen(ps,type){if(ps.active)return;ps.active=true;ps.angleSpun=0;ps.shiftDone=false;ps.spinsLeft=type==='port_stbd'?2:1;}
+function tickPen(ps,obj,W,H){
+  if(!ps.active)return false;
+  obj.speed=0;obj.heading=(obj.heading+4)%360;ps.angleSpun+=4;
+  if(!ps.shiftDone&&ps.angleSpun>=180){const a=(obj.heading-90)*Math.PI/180;obj.x=Math.max(15,Math.min(W-15,obj.x+Math.cos(a)*BOAT_LENGTH));obj.y=Math.max(15,Math.min(H-15,obj.y+Math.sin(a)*BOAT_LENGTH));ps.shiftDone=true;}
+  if(ps.angleSpun>=360){ps.spinsLeft--;ps.angleSpun=0;ps.shiftDone=false;if(ps.spinsLeft<=0){ps.active=false;return false;}}
+  return true;
+}
+
+let boat,cpu,frame,cdFrames,alertTimer,keys,phase;
+let playerPen,cpuPen,playerPrevH,cpuPrevH;
+let startFrame=null,finishFrame=null;
+let earlyStartPenFrames=0,collisionCooldown=0,cpuCollisionCooldown=0;
+
+function resetPlayer(W,H,c){
+  boat={x:(c.slPinX+c.slRCX)/2,y:c.slPinY+BOAT_LENGTH*2,heading:350,speed:0,stage:0,finished:false,trim:0.8};
+  playerPen=makePen();playerPrevH=350;earlyStartPenFrames=0;startFrame=null;finishFrame=null;
+}
+function resetCPU(W,H,c){
+  cpu={x:(c.slPinX+c.slRCX)/2-65,y:c.slPinY+BOAT_LENGTH*3,heading:350,speed:0,stage:0,finished:false,trim:0.8,penFrames:0,startFrame:null,finishFrame:null,tackSide:1,tackCooldown:0};
+  cpuPen=makePen();cpuPrevH=350;
+}
+
+function cpuUpdate(c,W,H){
+  if(cpu.finished)return;
+  if(tickPen(cpuPen,cpu,W,H)){cpuPrevH=cpu.heading;return;}
+  if(cpu.penFrames>0){cpu.penFrames--;if(!cpu.penFrames){cpu.y=c.slPinY+BOAT_LENGTH*3;cpu.speed=0;}cpuPrevH=cpu.heading;return;}
+  if(cpu.tackCooldown>0)cpu.tackCooldown--;
+  const wp=getWaypoints(c);
+  if(phase==='countdown'){
+    const ty=c.slPinY-20;
+    if(cpu.y>ty+5){const d=sdiff(cpu.heading,0);cpu.heading=(cpu.heading+Math.sign(d)*2+360)%360;}
+    else{const d=sdiff(cpu.heading,350);cpu.heading=(cpu.heading+Math.sign(d)*1.5+360)%360;if(cpu.y<c.slPinY)cpu.y=c.slPinY+2;}
+    if(crossedLine(cpu.x,cpu.y,c.slPinX,c.slPinY,c.slRCX,c.slRCY)&&cpu.heading<160){cpu.penFrames=Math.round(PEN_EARLY*FPS);cpu.y=c.slPinY+BOAT_LENGTH*3;cpu.speed=0;}
+    const rel=windRel(cpu.heading);cpu.trim=idealTrim(rel);cpu.speed+=(speedForRel(rel,cpu.trim)*0.3-cpu.speed)*0.05;
+    const rad=(cpu.heading-90)*Math.PI/180;cpu.x+=Math.cos(rad)*cpu.speed*0.05;cpu.y+=Math.sin(rad)*cpu.speed*0.05;
+    cpu.x=Math.max(10,Math.min(W-10,cpu.x));cpu.y=Math.max(c.slPinY-60,Math.min(H-10,cpu.y));cpuPrevH=cpu.heading;return;
+  }
+  if(cpu.stage>=wp.length){cpu.finished=true;return;}
+  const target=wp[cpu.stage];
+  const directH=hTo(cpu.x,cpu.y,target.x,target.y);const directRel=windRel(directH);let desiredH;
+  if(directRel<32){const pH=(WIND_FROM+40+360)%360,sH=(WIND_FROM-40+360)%360;
+    if(cpu.x<W*0.08)cpu.tackSide=1;if(cpu.x>W*0.92)cpu.tackSide=-1;
+    if(cpu.tackCooldown===0){if(cpu.tackSide===1&&cpu.x>target.x+W*0.12){cpu.tackSide=-1;cpu.tackCooldown=90;}if(cpu.tackSide===-1&&cpu.x<target.x-W*0.12){cpu.tackSide=1;cpu.tackCooldown=90;}if(target.x-cpu.x>60)cpu.tackSide=1;else if(cpu.x-target.x>60)cpu.tackSide=-1;}
+    desiredH=cpu.tackSide===1?pH:sH;
+  }else if(directRel>150){const g1=(WIND_FROM+160+360)%360,g2=(WIND_FROM-160+360)%360;if(cpu.x<target.x-W*0.08)desiredH=g1;else if(cpu.x>target.x+W*0.08)desiredH=g2;else desiredH=directH;}
+  else desiredH=directH;
+  if(cpuCollisionCooldown>0)cpuCollisionCooldown--;
+  if(cpuCollisionCooldown===0){const d=dist(cpu.x,cpu.y,boat.x,boat.y);if(d<COLLISION_DIST*3&&getTack(cpu.heading)==='port'&&getTack(boat.heading)==='starboard')desiredH=(WIND_FROM+25+360)%360;}
+  cpuPrevH=cpu.heading;const diff=sdiff(cpu.heading,desiredH);cpu.heading=(cpu.heading+Math.sign(diff)*Math.min(Math.abs(diff),2.8)+360)%360;
+  const rel=windRel(cpu.heading);cpu.trim=idealTrim(rel);cpu.speed+=(speedForRel(rel,cpu.trim)-cpu.speed)*0.05;
+  const rad=(cpu.heading-90)*Math.PI/180;cpu.x+=Math.cos(rad)*cpu.speed*0.05;cpu.y+=Math.sin(rad)*cpu.speed*0.05;
+  cpu.x=Math.max(10,Math.min(W-10,cpu.x));cpu.y=Math.max(10,Math.min(H-10,cpu.y));
+  const marks=[c.M1,c.M2,c.M3,c.M4];
+  if(cpu.stage===0){if(crossedLine(cpu.x,cpu.y,c.slPinX,c.slPinY,c.slRCX,c.slRCY)&&cpu.heading<160){cpu.stage=1;cpu.startFrame=frame;}}
+  else if(cpu.stage>=1&&cpu.stage<=4){if(dist(cpu.x,cpu.y,marks[cpu.stage-1].x,marks[cpu.stage-1].y)<32)cpu.stage++;}
+  else if(cpu.stage===5){if(crossedLine(cpu.x,cpu.y,c.flPinX,c.flPinY,c.flRCX,c.flRCY)&&cpu.heading<160){cpu.stage=6;cpu.finished=true;cpu.finishFrame=frame;}}
+  marks.forEach((m,i)=>{if(cpu.stage!==i+1&&dist(cpu.x,cpu.y,m.x,m.y)<14&&!cpuPen.active){startPen(cpuPen,'mark');cpu.speed=0;}});
+}
+
+function checkContact(W,H){
+  if(collisionCooldown>0){collisionCooldown--;return;}
+  const d=dist(boat.x,boat.y,cpu.x,cpu.y);if(d>COLLISION_DIST)return;
+  const pT=getTack(boat.heading),cT=getTack(cpu.heading);
+  if(pT==='port'&&cT==='starboard'&&!playerPen.active){startPen(playerPen,'port_stbd');boat.speed=0;document.getElementById('penalty-flash').style.display='block';showAlert('Rule 10: You (PORT) hit CPU (STARBOARD) — 2×360°!');collisionCooldown=FPS*5;cpuCollisionCooldown=FPS*5;const a=Math.atan2(boat.y-cpu.y,boat.x-cpu.x);boat.x+=Math.cos(a)*22;boat.y+=Math.sin(a)*22;return;}
+  if(cT==='port'&&pT==='starboard'&&!cpuPen.active){startPen(cpuPen,'port_stbd');cpu.speed=0;showAlert('Rule 10: CPU (PORT) failed to give way — CPU does 2×360°!');collisionCooldown=FPS*5;cpuCollisionCooldown=FPS*5;const a=Math.atan2(cpu.y-boat.y,cpu.x-boat.x);cpu.x+=Math.cos(a)*22;cpu.y+=Math.sin(a)*22;return;}
+  const pBA=isBearingAway(playerPrevH,boat.heading),cBA=isBearingAway(cpuPrevH,cpu.heading);
+  if(pBA&&!cBA&&!playerPen.active){startPen(playerPen,'barge');boat.speed=0;document.getElementById('penalty-flash').style.display='block';showAlert('Rule 16: You bore away into CPU — 1×360°!');collisionCooldown=FPS*4;const a=Math.atan2(boat.y-cpu.y,boat.x-cpu.x);boat.x+=Math.cos(a)*22;boat.y+=Math.sin(a)*22;return;}
+  if(cBA&&!pBA&&!cpuPen.active){startPen(cpuPen,'barge');cpu.speed=0;showAlert('Rule 16: CPU bore away into you — CPU does 1×360°!');collisionCooldown=FPS*4;const a=Math.atan2(cpu.y-boat.y,cpu.x-boat.x);cpu.x+=Math.cos(a)*22;cpu.y+=Math.sin(a)*22;return;}
+  if(d<COLLISION_DIST*0.8){const a=Math.atan2(boat.y-cpu.y,boat.x-cpu.x);boat.x+=Math.cos(a)*4;boat.y+=Math.sin(a)*4;cpu.x-=Math.cos(a)*4;cpu.y-=Math.sin(a)*4;collisionCooldown=15;}
+}
+
+function crossedLine(bx,by,ax,ay,bx2,by2){const dx=bx2-ax,dy=by2-ay,len=Math.sqrt(dx*dx+dy*dy);const t=((bx-ax)*dx+(by-ay)*dy)/(len*len);if(t<0||t>1)return false;const cx=ax+t*dx,cy=ay+t*dy;return Math.sqrt((bx-cx)**2+(by-cy)**2)<28;}
+function nearMark(bx,by,mx,my){return dist(bx,by,mx,my)<32;}
+function hitMark(bx,by,mx,my){return dist(bx,by,mx,my)<14;}
+
+// Drawing
+function drawWaves(W,H){ctx.save();ctx.globalAlpha=0.05;for(let i=0;i<14;i++){const y=((i*50+frame*0.18)%H);ctx.beginPath();ctx.moveTo(0,y);for(let x=0;x<W;x+=50)ctx.quadraticCurveTo(x+25,y-7,x+50,y);ctx.strokeStyle='#93c5fd';ctx.lineWidth=1;ctx.stroke();}ctx.restore();}
+function drawWindArrows(W,H){ctx.save();ctx.globalAlpha=0.08;for(let x=70;x<W;x+=110)for(let y=35;y<H;y+=90){ctx.save();ctx.translate(x,y);ctx.rotate(Math.PI/2);ctx.beginPath();ctx.moveTo(-15,0);ctx.lineTo(15,0);ctx.lineTo(7,-6);ctx.moveTo(15,0);ctx.lineTo(7,6);ctx.strokeStyle='#7dd3fc';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();}ctx.restore();}
+function drawCourseLine(from,to){ctx.save();ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);ctx.strokeStyle='rgba(99,179,237,0.18)';ctx.lineWidth=1.5;ctx.setLineDash([7,12]);ctx.stroke();const mx=(from.x+to.x)/2,my=(from.y+to.y)/2,ang=Math.atan2(to.y-from.y,to.x-from.x);ctx.save();ctx.translate(mx,my);ctx.rotate(ang);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-10,-5);ctx.lineTo(-10,5);ctx.closePath();ctx.fillStyle='rgba(99,179,237,0.22)';ctx.fill();ctx.restore();ctx.restore();}
+function drawAllCourseLines(c){const sl={x:(c.slPinX+c.slRCX)/2,y:c.slPinY},fl={x:(c.flPinX+c.flRCX)/2,y:c.flPinY};[sl,c.M1,c.M2,c.M3,c.M4,fl].reduce((a,b)=>{drawCourseLine(a,b);return b;});}
+function drawLegLabels(c){ctx.save();ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='13px sans-serif';ctx.textAlign='center';const sl={x:(c.slPinX+c.slRCX)/2,y:c.slPinY},fl={x:(c.flPinX+c.flRCX)/2,y:c.flPinY};[[sl,c.M1,'Upwind'],[c.M1,c.M2,'Reach'],[c.M2,c.M3,'Downwind'],[c.M3,c.M4,'Reach'],[c.M4,fl,'Upwind']].forEach(([a,b,l])=>ctx.fillText(l,(a.x+b.x)/2,(a.y+b.y)/2-10));ctx.restore();}
+function drawFlag(x,y,color,label){ctx.save();ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-56);ctx.strokeStyle='#bbb';ctx.lineWidth=2.5;ctx.stroke();ctx.beginPath();ctx.moveTo(x,y-56);ctx.lineTo(x+28,y-44);ctx.lineTo(x,y-32);ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle='#888';ctx.fill();if(label){ctx.fillStyle='rgba(255,255,255,0.82)';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText(label,x,y+18);}ctx.restore();}
+function drawRCBoat(x,y,label){ctx.save();ctx.translate(x,y);ctx.beginPath();ctx.moveTo(-24,9);ctx.lineTo(24,9);ctx.lineTo(20,-7);ctx.lineTo(-20,-7);ctx.closePath();ctx.fillStyle='#b91c1c';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();ctx.beginPath();ctx.rect(-11,-17,22,10);ctx.fillStyle='#e8e8e8';ctx.fill();ctx.beginPath();ctx.moveTo(0,-17);ctx.lineTo(0,-36);ctx.strokeStyle='#ccc';ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.moveTo(0,-36);ctx.lineTo(18,-27);ctx.lineTo(0,-18);ctx.closePath();ctx.fillStyle='#f59e0b';ctx.fill();if(label){ctx.fillStyle='rgba(255,255,255,0.75)';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText(label,0,22);}ctx.restore();}
+function drawMark(x,y,color,label){ctx.save();ctx.beginPath();ctx.arc(x,y,18,0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=5;ctx.stroke();ctx.beginPath();ctx.arc(x,y,12,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.arc(x,y-12,5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,x,y);ctx.restore();}
+function pMarkColor(idx){if(boat.stage>idx+1)return'#22c55e';if(boat.stage===idx+1)return'#f59e0b';return'#ef4444';}
+
+function drawBoatShape(obj,pen,label,mainColor){
+  const sz=17,heading=obj.heading,tack=getTack(heading),rel=windRel(heading),frozen=pen.active||obj.penFrames>0;
+  ctx.save();ctx.translate(obj.x,obj.y);
+  ctx.beginPath();ctx.arc(0,0,sz+9,0,Math.PI*2);ctx.strokeStyle=tack==='starboard'?'rgba(34,197,94,0.55)':'rgba(239,68,68,0.55)';ctx.lineWidth=2.5;ctx.stroke();
+  if(frozen){ctx.beginPath();ctx.arc(0,0,sz+17,0,Math.PI*2);ctx.fillStyle='rgba(239,68,68,0.15)';ctx.fill();}
+  if(pen.active){ctx.beginPath();ctx.arc(0,0,sz+13,-Math.PI/2,-Math.PI/2+2*Math.PI*(1-pen.angleSpun/360));ctx.strokeStyle='rgba(239,68,68,0.8)';ctx.lineWidth=3;ctx.stroke();}
+  ctx.rotate(heading*Math.PI/180);
+  ctx.beginPath();ctx.moveTo(0,-sz);ctx.lineTo(sz*0.38,sz*0.55);ctx.lineTo(0,sz*0.32);ctx.lineTo(-sz*0.38,sz*0.55);ctx.closePath();ctx.fillStyle=frozen?'#f87171':mainColor;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.7)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,sz*0.1);ctx.lineTo(0,-sz*0.8);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  const wl=((WIND_FROM-heading+360)%360),side=(wl>180)?1:-1,belly=0.7*(1-obj.trim*0.5),tIn=sz*0.35*obj.trim;
+  ctx.beginPath();ctx.moveTo(0,-sz*0.75);ctx.quadraticCurveTo(side*sz*belly,-sz*0.22,side*tIn,sz*0.1);ctx.lineTo(0,sz*0.1);ctx.closePath();
+  const id=idealTrim(rel),df=obj.trim-id;ctx.fillStyle=df>0.15?'rgba(255,240,100,0.9)':df<-0.15?'rgba(150,220,255,0.9)':'rgba(255,255,255,0.9)';ctx.fill();
+  ctx.beginPath();ctx.moveTo(0,sz*0.1);ctx.lineTo(side*tIn,sz*0.1);ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1;ctx.stroke();
+  ctx.rotate(-heading*Math.PI/180);
+  ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(label,0,-sz-6);
+  ctx.fillStyle=tack==='starboard'?'#86efac':'#fca5a5';ctx.font='9px sans-serif';ctx.textBaseline='top';ctx.fillText(tack==='starboard'?'S':'P',0,sz+12);
+  ctx.restore();
+}
+
+function drawCompass(W){ctx.save();ctx.translate(W-50,52);ctx.fillStyle='rgba(0,0,0,0.4)';ctx.beginPath();ctx.arc(0,0,24,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,24,0,Math.PI*2);ctx.stroke();['N','E','S','W'].forEach((d,i)=>{const a=i*Math.PI/2-Math.PI/2;ctx.fillStyle=d==='N'?'#f87171':'rgba(255,255,255,0.6)';ctx.font=d==='N'?'bold 11px sans-serif':'10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(d,Math.cos(a)*16,Math.sin(a)*16);});const ha=(boat.heading-90)*Math.PI/180;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(ha)*18,Math.sin(ha)*18);ctx.strokeStyle='#38bdf8';ctx.lineWidth=2.5;ctx.stroke();ctx.restore();}
+function drawSailMeter(W,H){const x=16,y=H-120,w=18,h=100,rel=windRel(boat.heading),ideal=idealTrim(rel),filled=boat.trim*h;ctx.save();ctx.fillStyle='rgba(0,0,0,0.4)';ctx.beginPath();ctx.roundRect(x-4,y-4,w+8,h+8,5);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(x,y,w,h);ctx.fillStyle='rgba(99,179,237,0.7)';ctx.fillRect(x,y+h-filled,w,filled);ctx.fillStyle='rgba(34,197,94,0.9)';ctx.fillRect(x-2,y+h-ideal*h-1,w+4,3);ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('IN',x+w/2,y-8);ctx.fillText('OUT',x+w/2,y+h+12);ctx.restore();}
+function drawCountdownZone(c,W,H){ctx.save();ctx.globalAlpha=0.07;ctx.fillStyle='#ef4444';ctx.fillRect(0,c.slPinY,W,H-c.slPinY);ctx.globalAlpha=1;ctx.fillStyle='rgba(239,68,68,0.4)';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('CANNOT START YET — wait for GO!',W/2,c.slPinY+28);ctx.restore();}
+function drawLegend(W,H){ctx.save();ctx.fillStyle='rgba(0,0,0,0.45)';ctx.beginPath();ctx.roundRect(W-170,H-94,160,84,6);ctx.fill();ctx.font='10px sans-serif';ctx.textAlign='left';ctx.fillStyle='#86efac';ctx.fillText('● Green ring = Starboard (ROW)',W-162,H-74);ctx.fillStyle='#fca5a5';ctx.fillText('● Red ring = Port (give way)',W-162,H-58);ctx.fillStyle='rgba(255,240,100,0.9)';ctx.fillText('● Yellow sail = over-trimmed',W-162,H-42);ctx.fillStyle='rgba(150,220,255,0.9)';ctx.fillText('● Blue sail = too eased',W-162,H-26);ctx.restore();}
+
+// Nickname labels on boats
+function drawNick(x,y,nick,col){ctx.save();ctx.fillStyle=col||'#fff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(nick,x,y-28);ctx.restore();}
+
+const CPU_NAMES=['Start','Mark 1','Mark 2','Mark 3','Mark 4','Finish','DONE'];
+function updateHUD(){
+  const rel=windRel(boat.heading),frozen=playerPen.active||earlyStartPenFrames>0;
+  const nextLabels=['Start line','Mark 1','Mark 2','Mark 3','Mark 4','Finish!','Done'];
+  let timeStr='—';if(startFrame!==null){const el=finishFrame!==null?(finishFrame-startFrame):(frame-startFrame);timeStr=(el/FPS).toFixed(1)+'s';}
+  document.getElementById('h-spd').textContent=keys['s']?'5.0↓':frozen?'TURN':boat.speed.toFixed(1);
+  document.getElementById('h-hdg').textContent=Math.round(boat.heading)+'°';
+  document.getElementById('h-pos').textContent=frozen?'Penalty':keys['s']?'Reverse':getPos(rel);
+  document.getElementById('h-sail').textContent=frozen?'—':trimLabel(boat.trim,rel);
+  document.getElementById('h-next').textContent=nextLabels[boat.stage]||'Done';
+  document.getElementById('h-time').textContent=timeStr;
+  const cp=cpuPen.active?' [SPIN]':cpu.penFrames>0?' [PEN]':'';
+  document.getElementById('h-cpu').textContent=(CPU_NAMES[cpu.stage]||'Done')+cp;
+}
+
+function showAlert(msg){alertTimer=340;const el=document.getElementById('alert-box');el.textContent=msg;el.style.display='block';}
+function hideAlert(){document.getElementById('alert-box').style.display='none';}
+
+function reset(){
+  // Only host can reset
+  if(!isHost&&phase==='finished')return;
+  resize();
+  const W=canvas.width,H=canvas.height,c=getCourse(W,H);
+  frame=0;cdFrames=START_SECS*FPS;alertTimer=0;keys={};phase='countdown';
+  collisionCooldown=0;cpuCollisionCooldown=0;
+  resetPlayer(W,H,c);resetCPU(W,H,c);
+  document.getElementById('big-num').style.display='none';
+  document.getElementById('penalty-flash').style.display='none';
+  document.getElementById('bar').style.width='100%';
+  document.getElementById('bar').style.background='#22c55e';
+  document.getElementById('h-cd').textContent=START_SECS.toFixed(1)+'s';
+  showAlert('30s start! E=pull sail in, Q=ease out. Green ring=starboard ROW');
+  gameRunning=true;
+}
+
+function doTack(){if(playerPen.active||earlyStartPenFrames>0)return;boat.heading=(2*WIND_FROM-boat.heading+360)%360;boat.speed*=0.45;showAlert('Tacking! (Rule 13)');}
+function doGybe(){if(playerPen.active||earlyStartPenFrames>0)return;boat.heading=(boat.heading+180)%360;boat.speed*=0.7;showAlert('Gybing! (Rule 116)');}
+
+function update(){
+  if(!gameRunning)return;
+  frame++;
+  const W=canvas.width,H=canvas.height,c=getCourse(W,H);
+  if(phase==='countdown'){
+    cdFrames=Math.max(0,cdFrames-1);const s=cdFrames/FPS;
+    document.getElementById('h-cd').textContent=s.toFixed(1)+'s';
+    document.getElementById('bar').style.width=((cdFrames/(START_SECS*FPS))*100)+'%';
+    document.getElementById('bar').style.background=s<=5?'#ef4444':s<=10?'#f59e0b':'#22c55e';
+    const bigEl=document.getElementById('big-num');
+    if(s<=10&&s>0){bigEl.style.display='block';bigEl.textContent=Math.ceil(s);bigEl.style.color=s<=5?'rgba(239,68,68,0.9)':'rgba(245,158,11,0.85)';}
+    else bigEl.style.display='none';
+    if(cdFrames===0){phase='racing';document.getElementById('h-cd').textContent='GO!';document.getElementById('bar').style.width='0%';document.getElementById('big-num').style.display='none';showAlert('GO! Cross the start line to start your timer!');}
+  }
+  if(tickPen(playerPen,boat,W,H)){if(!playerPen.active)document.getElementById('penalty-flash').style.display='none';cpuUpdate(c,W,H);checkContact(W,H);updateHUD();if(alertTimer>0){alertTimer--;if(!alertTimer)hideAlert();}return;}
+  if(earlyStartPenFrames>0){earlyStartPenFrames--;if(keys['a']||keys['arrowleft'])boat.heading=(boat.heading-2.5+360)%360;if(keys['d']||keys['arrowright'])boat.heading=(boat.heading+2.5)%360;if(!earlyStartPenFrames){document.getElementById('penalty-flash').style.display='none';showAlert('Penalty over!');}cpuUpdate(c,W,H);checkContact(W,H);updateHUD();if(alertTimer>0){alertTimer--;if(!alertTimer)hideAlert();}return;}
+  if(keys['e'])boat.trim=Math.min(1,boat.trim+0.012);
+  if(keys['q'])boat.trim=Math.max(0,boat.trim-0.012);
+  playerPrevH=boat.heading;
+  if(keys['a']||keys['arrowleft'])boat.heading=(boat.heading-2.5+360)%360;
+  if(keys['d']||keys['arrowright'])boat.heading=(boat.heading+2.5)%360;
+  if(keys['s']){boat.heading=WIND_FROM;boat.speed=0;const rv=((WIND_FROM+180)-90)*Math.PI/180;boat.x+=Math.cos(rv)*5*0.05;boat.y+=Math.sin(rv)*5*0.05;}
+  else{const rel=windRel(boat.heading);boat.speed+=(speedForRel(rel,boat.trim)-boat.speed)*0.04;const rad=(boat.heading-90)*Math.PI/180;boat.x+=Math.cos(rad)*boat.speed*0.05;boat.y+=Math.sin(rad)*boat.speed*0.05;}
+  boat.x=Math.max(10,Math.min(W-10,boat.x));boat.y=Math.max(10,Math.min(H-10,boat.y));
+  if(phase==='countdown'&&boat.stage===0&&crossedLine(boat.x,boat.y,c.slPinX,c.slPinY,c.slRCX,c.slRCY)&&boat.heading<160){earlyStartPenFrames=Math.round(PEN_EARLY*FPS);showAlert('EARLY START! Frozen 3.5s (Rule 30).');document.getElementById('penalty-flash').style.display='block';boat.y=c.slPinY+BOAT_LENGTH*3;boat.speed=0;}
+  if(!playerPen.active){[c.M1,c.M2,c.M3,c.M4].forEach((m,i)=>{if(boat.stage!==i+1&&hitMark(boat.x,boat.y,m.x,m.y)){startPen(playerPen,'mark');boat.speed=0;document.getElementById('penalty-flash').style.display='block';showAlert('HIT MARK '+(i+1)+'! Shift + 1×360° (Rule 31).');}});}
+  if(phase==='racing'&&!boat.finished){
+    if(boat.stage===0&&crossedLine(boat.x,boat.y,c.slPinX,c.slPinY,c.slRCX,c.slRCY)&&boat.heading<160){boat.stage=1;startFrame=frame;showAlert('Racing! Upwind to Mark 1.');}
+    else if(boat.stage===1&&nearMark(boat.x,boat.y,c.M1.x,c.M1.y)){boat.stage=2;showAlert('Mark 1! Reach to Mark 2.');}
+    else if(boat.stage===2&&nearMark(boat.x,boat.y,c.M2.x,c.M2.y)){boat.stage=3;showAlert('Mark 2! Downwind to Mark 3.');}
+    else if(boat.stage===3&&nearMark(boat.x,boat.y,c.M3.x,c.M3.y)){boat.stage=4;showAlert('Mark 3! Reach to Mark 4.');}
+    else if(boat.stage===4&&nearMark(boat.x,boat.y,c.M4.x,c.M4.y)){boat.stage=5;showAlert('Mark 4! Final upwind to finish!');}
+    else if(boat.stage===5&&crossedLine(boat.x,boat.y,c.flPinX,c.flPinY,c.flRCX,c.flRCY)&&boat.heading<160){
+      boat.stage=6;boat.finished=true;finishFrame=frame;
+      const myT=((finishFrame-startFrame)/FPS).toFixed(1);
+      const cpuStr=cpu.finished?'CPU: '+((cpu.finishFrame-cpu.startFrame)/FPS).toFixed(1)+'s':'CPU still racing!';
+      const rHint=isHost?' | R = new race':' | Waiting for host to restart…';
+      showAlert(playerNick+' FINISHED! '+myT+'s | '+cpuStr+rHint);
+      phase='finished';document.getElementById('h-cd').textContent='Done!';
+    }
+  }
+  if(cpu.finished&&cpu.finishFrame===frame&&!boat.finished)showAlert('CPU finished! Keep pushing, '+playerNick+'!');
+  const rel=windRel(boat.heading);if(rel<30&&frame%150===0&&!boat.finished&&!keys['s'])showAlert('In irons! Bear away (Rule 111).');
+  cpuUpdate(c,W,H);checkContact(W,H);updateHUD();if(alertTimer>0){alertTimer--;if(!alertTimer)hideAlert();}
+}
+
+function render(){
+  if(!gameRunning)return;
+  const W=canvas.width,H=canvas.height,c=getCourse(W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0f2a44';ctx.fillRect(0,0,W,H);
+  drawWaves(W,H);drawWindArrows(W,H);drawAllCourseLines(c);drawLegLabels(c);
+  if(phase==='countdown')drawCountdownZone(c,W,H);
+  ctx.save();ctx.beginPath();ctx.moveTo(c.slPinX,c.slPinY);ctx.lineTo(c.slRCX,c.slRCY);ctx.strokeStyle='rgba(34,197,94,0.85)';ctx.lineWidth=3;ctx.setLineDash([7,5]);ctx.stroke();ctx.restore();
+  drawFlag(c.slPinX,c.slPinY,'#22c55e','Start');drawRCBoat(c.slRCX,c.slRCY,'RC');
+  ctx.save();ctx.beginPath();ctx.moveTo(c.flPinX,c.flPinY);ctx.lineTo(c.flRCX,c.flRCY);ctx.strokeStyle=boat.stage>=5?'rgba(239,68,68,0.9)':'rgba(239,68,68,0.4)';ctx.lineWidth=3;ctx.setLineDash([7,5]);ctx.stroke();ctx.restore();
+  drawFlag(c.flPinX,c.flPinY,'#ef4444','Finish');drawRCBoat(c.flRCX,c.flRCY,'RC');
+  drawMark(c.M1.x,c.M1.y,pMarkColor(0),'1');drawMark(c.M2.x,c.M2.y,pMarkColor(1),'2');drawMark(c.M3.x,c.M3.y,pMarkColor(2),'3');drawMark(c.M4.x,c.M4.y,pMarkColor(3),'4');
+  if(dist(boat.x,boat.y,cpu.x,cpu.y)<COLLISION_DIST*3.5){ctx.save();ctx.globalAlpha=0.12;ctx.beginPath();ctx.arc(boat.x,boat.y,COLLISION_DIST,0,Math.PI*2);ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.setLineDash([3,5]);ctx.stroke();ctx.restore();}
+  drawBoatShape(cpu,cpuPen,'CPU','#f97316');
+  drawBoatShape(boat,playerPen,playerNick,'#38bdf8');
+  drawCompass(W);drawSailMeter(W,H);drawLegend(W,H);
+}
+
+function loop(){update();render();requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('game').style.display==='none')return;
+  keys[e.key.toLowerCase()]=true;
+  if(['arrowleft','arrowright','arrowup','arrowdown',' '].includes(e.key.toLowerCase()))e.preventDefault();
+  if(e.key.toLowerCase()==='r'&&isHost&&phase==='finished')reset();
+  if(e.key.toLowerCase()==='t')doTack();
+  if(e.key.toLowerCase()==='g')doGybe();
+  if(e.key.toLowerCase()==='h')goHome();
+});
+document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+</script>
+</body>
+</html>
